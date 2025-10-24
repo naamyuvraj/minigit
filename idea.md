@@ -1,125 +1,133 @@
-# 💡 Mini GitHub Clone – Collaborative Code Hosting Platform  
-**Team Name:** CodeVerse  
+# 💡 OpenBox – Lightweight Project & CRUD Operation Handler  
+**Team Name:** Dev4ce  
 
 ---
 
-## 📄 1. Project Overview  
+## 📄 1. Project Overview
 
-In the modern era of software development, collaboration and version control are crucial. However, most open-source platforms like GitHub are massive in scale and feature-rich — often unnecessary for smaller teams or educational environments.  
+Managing small-to-medium development projects often requires a simple, reliable system to store, edit, and track project files and metadata without the full complexity of a distributed VCS.  
+**OpenBox** is a lightweight web application that focuses on CRUD-based project handling: create repositories (projects), upload/manage files, edit in-browser, track commits/changes as records (not a full Git model), and handle collaboration via roles and auth.
 
-**Mini GitHub Clone** is a lightweight web application that mimics the core functionality of GitHub — allowing users to create repositories, upload files, edit code in a collaborative environment (like Google Colab), and track commits — all in a simplified, self-hosted format.  
-
-The platform aims to provide developers and students an easy-to-use version control and collaboration system without the complexity of enterprise-grade tools.
-
----
-
-## ⚙️ 2. Key Features  
-
-- **User Authentication (JWT):** Secure login and signup for users.  
-- **Repository Management:** Create, view, and delete repositories.  
-- **File Upload & Editing:** Upload code files and edit them using an integrated code editor.  
-- **Commit Tracker:** Record commits with timestamps, messages, and file diffs.  
-- **Collaborative Editing:** Edit code simultaneously in a shared workspace (Colab-style).  
-- **Branch Simulation:** Create and switch between branches for testing changes.  
-- **Search & Filter Repos:** Easily locate repositories by name, language, or user.  
-- **Activity Log:** Track user actions like commits, pushes, and merges.  
-- **Profile Management:** Each user can manage their own repositories and commits.  
-- **Responsive UI:** Fully optimized for desktop and mobile views.  
+OpenBox is designed to be a simple, extensible platform for teams, students, and solo developers who want a neat self-hosted project manager with easy file operations, history tracking, and integrations (OAuth + JWT).
 
 ---
 
-## 👥 3. User Roles  
+## ⚙️ 2. Key Features
 
-### 🧑‍💻 Developer/User  
-- Can create, edit, and delete repositories.  
-- Can upload files, edit code, and commit changes.  
-- Can collaborate on shared repositories.  
-
-### 👩‍💼 Admin  
-- Has access to all repositories and users.  
-- Can manage users, repositories, and activity logs.  
-- Can remove or restrict access to users violating terms.  
+- **Project Management (CRUD):** Create, read, update, and delete projects and project files.  
+- **File Upload & In-browser Editing:** Upload files and edit them using an integrated editor (Monaco/CodeMirror).  
+- **Change Records:** Save change entries (message, timestamp, diff metadata) — lightweight commit-like history without Git internals.  
+- **Authentication:** JWT for token-based auth + OAuth (Google/GitHub) sign-in for convenience.  
+- **Role-Based Access:** Admin, Maintainer, Contributor, and Viewer roles with permissions.  
+- **Branch-like Workflows (Lightweight):** Create ephemeral workspaces for testing edits before applying to the main project.  
+- **Search & Filter:** Find projects/files by name, language, tags, or owner.  
+- **Activity Log & Audit:** Track create/update/delete operations for accountability.  
+- **Notifications:** Optional in-app notifications for mentions, share requests, or new change records.  
+- **Export / Import:** Download project snapshots or import zipped projects.
 
 ---
 
-## 🖥️ 4. Frontend Pages / Screens  
+## 👥 3. User Roles
+
+### 🧑‍💻 Contributor / Developer
+- Create and edit projects they own or have access to.  
+- Upload files and create change records.
+
+### 👨‍🔧 Maintainer
+- Manage collaborators for specific projects.  
+- Approve/merge changes from contributor workspaces.
+
+### 🧑‍💼 Admin
+- Full access across the platform.  
+- Manage users, global settings, and system logs.
+
+### 👩‍💼 Viewer / Auditor
+- Read-only access to specified projects and activity logs.
+
+---
+
+## 🖥️ 4. Frontend Pages / Screens
 
 | Page | Description |
 |------|--------------|
-| **Landing Page** | Introduction and CTA to sign up or log in |
-| **Login / Signup Page** | Secure authentication using JWT |
-| **Dashboard** | Displays user’s repositories and quick stats |
-| **Create Repository Page** | Form to create a new repository |
-| **Repository View** | Displays files, commits, and contributors |
-| **File Editor Page** | Integrated code editor for editing or viewing files |
-| **Commit History Page** | Shows commit messages, diffs, and timestamps |
-| **User Profile Page** | Displays user details, repositories, and activity |
-| **Admin Panel (Optional)** | Manage users, reports, and global settings |
-| **Activity Log Page** | System-wide tracking of user and repo actions |
+| **Landing Page** | Product intro, OAuth sign-in CTA, links to docs |
+| **Login / Signup** | JWT authentication + OAuth (Google / GitHub / etc.) |
+| **Dashboard** | User projects, recent activity, quick actions |
+| **Create Project** | Create new project (metadata: description, visibility, tags) |
+| **Project View** | File tree, change records, collaborators, settings |
+| **File Editor** | Edit files inline, preview, save as new change record |
+| **Change History** | Chronological list of change records with diffs |
+| **Collaborators** | Invite/assign roles via email or OAuth identity |
+| **Admin Panel** | User management, system logs, platform settings |
+| **Activity Log** | Global and project-scoped audit trail |
 
 ---
 
-## 🗃️ 5. Database Design (MySQL Draft)  
+## 🗃️ 5. Database Design (MongoDB **or** MySQL)
 
-| Table | Description |
-|--------|--------------|
-| **users** | Stores user details and authentication info |
-| **repositories** | Each repository with owner info and visibility |
-| **files** | Stores file metadata, path, and linked repository |
-| **commits** | Records commit messages, timestamps, and file changes |
-| **branches** | Simulates repository branching and history tracking |
-| **collaborators** | Manages user access for shared repositories |
-| **activity_logs** | Tracks actions like commit, push, or delete |
+> The platform supports either **MongoDB** (document-first flexibility) **or** **MySQL** (relational guarantees). Choose based on deployment preferences.
+
+| Collection / Table | Description |
+|--------------------|-------------|
+| **users** | User profiles, OAuth identities, hashed credentials, roles |
+| **projects** | Project metadata (name, description, owner, visibility, tags) |
+| **files** | File metadata (path, project_id, size, mime_type, storage_ref) |
+| **changes** | Lightweight change records (message, author_id, timestamp, file_diffs) |
+| **workspaces** | Ephemeral branches/workspaces for tentative edits |
+| **collaborators** | Project access control list (user_id, role) |
+| **activity_logs** | Audit trail of actions (create, update, delete, share) |
+| **oauth_tokens** | Encrypted OAuth tokens (refresh/access) if needed for integrations |
 
 ---
 
-## 🧰 6. Tech Stack  
+## 🧰 6. Tech Stack
 
 | Layer | Technology |
 |--------|-------------|
-| **Frontend** | React.js / Next.js + Tailwind CSS |
-| **Backend** | Node.js + Express.js |
-| **Database** | MySQL |
-| **Authentication** | JWT (JSON Web Tokens) |
-| **Storage** | Cloud storage for code files and commit data |
-| **Code Editing** | Monaco Editor / CodeMirror for in-browser editing |
-| **Version Control Simulation** | Custom commit-tracking logic via backend APIs |
+| **Frontend** | Next.js (recommended) or React + Tailwind CSS |
+| **Backend** | Node.js + Express.js or Next.js API routes |
+| **Database** | **MongoDB (Atlas)** **or** **MySQL** |
+| **Authentication** | **JWT** (stateless API tokens) + **OAuth** (Google, GitHub) |
+| **Storage** | Cloud object storage (S3-compatible) for files & snapshots |
+| **Editor** | Monaco Editor or CodeMirror for in-browser editing |
+| **Diffing** | jsdiff / diff-match-patch for storing change metadata |
+| **Deployment** | Docker + cloud provider (VPS / DigitalOcean / AWS) |
+| **Optional** | Redis for sessions/queues, workers for background tasks |
 
 ---
 
-## 🔄 7. Workflow  
+## 🔄 7. Workflow
 
-1. User signs up or logs in via JWT authentication.  
-2. After login, the dashboard displays all repositories owned by the user.  
-3. The user can create a new repository and upload files.  
-4. Files can be edited in the built-in editor (collaboratively if shared).  
-5. When changes are saved, a **commit** is created and stored with metadata.  
-6. Commit logs are displayed chronologically for each repository.  
-7. Other collaborators can view, edit, or fork the repository (based on permissions).  
-8. Admins can monitor system activity and manage global data.  
-
----
-
-## 🎯 8. Expected Outcomes  
-
-- Functional lightweight GitHub-like platform  
-- Secure JWT-based authentication and session handling  
-- Real-time collaborative code editing (Colab-style)  
-- Commit tracking with proper timestamps and history  
-- Scalable database design with user-role management  
-- Clean, minimal, and responsive UI/UX  
+1. User signs in via OAuth or registers and authenticates using JWT.  
+2. Dashboard lists user-owned and shared projects.  
+3. User creates a project (CRUD) and uploads files or creates them in-editor.  
+4. Saving changes creates a **change record** with metadata (author, message, timestamp, diffs).  
+5. Contributors can create a workspace (ephemeral) to stage edits; maintainers review and apply to the main project.  
+6. Activity logs capture every create/update/delete for auditing.  
+7. Admin controls and global settings manage platform-wide policies and integrations.
 
 ---
 
-## 🚀 9. Future Enhancements  
+## 🎯 8. Expected Outcomes
 
-- Integration with **Git CLI** for real repository cloning and pushing  
-- **AI-assisted code suggestions** for commit messages or code improvements  
-- **File diff visualization** similar to GitHub’s commit viewer  
-- **Docker-based deployment** for scalability  
-- **Notification system** for commits and collaborations  
-- **CI/CD simulation** for automated code testing  
+- A polished CRUD-based project handling app (OpenBox) for teams and individuals.  
+- Secure auth with both JWT tokens and OAuth sign-in options.  
+- Flexible DB support: MongoDB **or** MySQL depending on user needs.  
+- In-browser file editing with lightweight history (change records).  
+- Clean UI with role-based features and robust activity auditing.  
+- Easy deployment path with Docker and cloud storage.
 
 ---
 
-> 🧑‍💻 **Team CodeVerse** aims to bring the essence of GitHub to a minimal, educational, and collaborative environment — simplifying version control for everyone.
+## 🚀 9. Future Enhancements
+
+- Real-time collaboration (operational transforms or CRDT) for simultaneous editing.  
+- Integrations: CI runners, code linters, and webhooks.  
+- Native mobile app or PWA.  
+- Advanced RBAC and SSO (enterprise).  
+- Optional Git integration/adapter for sync to real Git repos.  
+- AI-assisted code reviews and commit message suggestions.
+
+---
+
+> 🧑‍💻 **Team Dev4ce** — building **OpenBox** to make project file management simple, secure, and scalable for modern teams.
