@@ -74,7 +74,7 @@ export default function EditorPage() {
   // ---------------------------------------------------------
 const handleSave = async () => {
   try {
-    const res = await fetch(`${BACKEND}/api/commits/file/${fileId}`, {
+    const res = await fetch(`${BACKEND}/projects/file/${fileId}/commit`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

@@ -171,6 +171,69 @@ class CommitController {
       res.status(500).json({ error: err.message });
     }
   }
+
+  // Get commit by id
+  async getCommitById(req, res) {
+    try {
+      const commit = await Commit.findById(req.params.id);
+      if (!commit) return res.status(404).json({ message: "Commit not found" });
+      res.json(commit);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+
+  // Get all commits for a repo
+  async getRepositoryCommits(req, res) {
+    try {
+      const commits = await Commit.find({ repo_id: req.params.repoId }).sort({ createdAt: -1 });
+      res.json(commits);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+
+  // Get diff for a commit
+  async getCommitDiff(req, res) {
+    try {
+      const commit = await Commit.findById(req.params.id);
+      if (!commit) return res.status(404).json({ message: "Commit not found" });
+      
+      const diffs = commit.files.map(f => ({
+        file_name: f.file_name,
+        file_path: f.file_path,
+        diff: f.diff
+      }));
+      res.json(diffs);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+
+  // Get diff for a specific file across all commits (or latest)
+  async getFileDiff(req, res) {
+    try {
+      const { repoId, file_path } = req.query;
+      if (!repoId || !file_path) {
+        return res.status(400).json({ message: "repoId and file_path are required" });
+      }
+
+      // Find the most recent commit that touched this file
+      const commit = await Commit.findOne({
+        repo_id: repoId,
+        "files.file_path": file_path
+      }).sort({ createdAt: -1 });
+
+      if (!commit) {
+        return res.status(404).json({ message: "No history found for this file" });
+      }
+
+      const fileState = commit.files.find(f => f.file_path === file_path);
+      res.json({ diff: fileState.diff, content: fileState.content });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  }
 }
 
 export default new CommitController();

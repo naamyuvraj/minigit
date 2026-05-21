@@ -14,4 +14,9 @@ router.post("/", CommitController.commitFiles.bind(CommitController));
 // Create from Zip
 router.post("/zip", upload.single("projectZip"), CommitController.commitChangesFromZip.bind(CommitController));
 
+router.get("/diff", CommitController.getFileDiff.bind(CommitController));
+router.get("/:id", CommitController.getCommitById.bind(CommitController));
+router.get("/repo/:repoId", CommitController.getRepositoryCommits.bind(CommitController));
+router.get("/:id/diff", CommitController.getCommitDiff.bind(CommitController));
+
 export default router;

@@ -17,9 +17,6 @@ dotenv.config();
 
 const app = express();
 
-// =====================
-// CORS 
-// =====================
 app.use(
   cors({
     origin: [
@@ -36,7 +33,6 @@ app.use(
 
 app.use(express.json({ limit: "50mb" }));
 
-// session for passport oauth
 app.use(
   session({
     secret: process.env.JWT_SECRET,
