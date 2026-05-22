@@ -39,7 +39,7 @@ export default function EditorPage() {
 
       const data = await res.json();
 
-      const file = data.files.find((f) => f._id === fileId);
+      const file = data.files.find((f: any) => f._id === fileId);
 
       if (!file) {
         console.error("File not found");

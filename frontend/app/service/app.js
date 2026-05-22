@@ -74,7 +74,7 @@ export async function getAuthProfile() {
     const token = getAuthToken();
     console.log("JWT token:", token);
 
-    const response = await fetch(`${API_BASE_URL}/user/profile`, {
+    const response = await fetch(`${API_BASE_URL}/user`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
