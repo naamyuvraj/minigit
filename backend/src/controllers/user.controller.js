@@ -200,6 +200,54 @@ class UserController {
       res.status(500).json({ error: err.message });
     }
   }
+
+  // Get friends
+  async getFriends(req, res) {
+    try {
+      const user = await User.findById(req.user.id).populate("friends", "name email pfp avatarUrl username");
+      if (!user) return res.status(404).json({ message: "Not found" });
+      res.status(200).json(user.friends || []);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+
+  // Add friend
+  async addFriend(req, res) {
+    try {
+      const { friendId } = req.body;
+      if (!friendId) return res.status(400).json({ message: "friendId required" });
+      if (friendId === req.user.id) return res.status(400).json({ message: "Cannot add yourself" });
+
+      const user = await User.findById(req.user.id);
+      if (!user) return res.status(404).json({ message: "Not found" });
+
+      const friend = await User.findById(friendId);
+      if (!friend) return res.status(404).json({ message: "Friend not found" });
+
+      if (!user.friends) user.friends = [];
+      const alreadyFriends = user.friends.some(id => id && id.toString() === friendId);
+      if (alreadyFriends) return res.status(400).json({ message: "Already friends" });
+
+      user.friends.push(friendId);
+      user.markModified("friends");
+      await user.save();
+      
+      // Also add to the other person's friends
+      if (!friend.friends) friend.friends = [];
+      const friendAlreadyHas = friend.friends.some(id => id && id.toString() === req.user.id);
+      if (!friendAlreadyHas) {
+        friend.friends.push(req.user.id);
+        friend.markModified("friends");
+        await friend.save();
+      }
+
+      const friendObj = { _id: friend._id, name: friend.name, email: friend.email, avatarUrl: friend.avatarUrl, pfp: friend.pfp };
+      res.status(200).json({ message: "Friend added successfully", friend: friendObj });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  }
 }
 
 // Export basic instance

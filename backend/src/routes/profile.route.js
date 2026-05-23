@@ -25,4 +25,10 @@ router.put("/", UserController.updateBioAvatar);
 // Change user password
 router.put("/password", UserController.changePassword);
 
+// Get friends
+router.get("/friends", UserController.getFriends);
+
+// Add friend
+router.post("/friends", UserController.addFriend);
+
 export default router;

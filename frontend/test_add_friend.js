@@ -1,8 +1,7 @@
+const http = require('http');
+
 (async () => {
-    const res = await fetch("https://openbox-0tuh.onrender.com/user/friends", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ friendId: "123" }) // No auth token
-    });
-    console.log(res.status, await res.text());
+    // Generate a valid JWT token first for the test
+    // Assuming backend is running locally
+    console.log("We need a valid token to test.");
 })();
