@@ -62,9 +62,10 @@ export default function ChatPage() {
   const loadFriends = async () => {
     try {
       const data = await getFriends();
-      setFriends(data);
+      setFriends(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Error loading friends:", error);
+      setFriends([]);
     }
   };
 
@@ -144,7 +145,13 @@ export default function ChatPage() {
         });
         if (res.ok) {
           const data = await res.json();
-          setSearchResults(data.users.filter((u: User) => u._id !== currentUser?._id));
+          // Provide a fallback empty array if data.users is undefined
+          const usersList = data.users || data || [];
+          setSearchResults(
+            Array.isArray(usersList) 
+              ? usersList.filter((u: User) => u._id !== currentUser?._id)
+              : []
+          );
         }
       } catch (error) {
         console.error(error);
@@ -229,7 +236,7 @@ export default function ChatPage() {
               <div className="p-2">
                 <span className="text-xs font-semibold text-muted-foreground uppercase px-2 mb-2 block">Search Results</span>
                 {searchResults.map((user) => {
-                  const isFriend = friends.some((f) => f._id === user._id);
+                  const isFriend = Array.isArray(friends) && friends.some((f) => f._id === user._id);
                   return (
                     <div
                       key={user._id}
@@ -237,7 +244,7 @@ export default function ChatPage() {
                     >
                       <Avatar className="w-10 h-10 cursor-pointer" onClick={() => isFriend && startChatWith(user)}>
                         <AvatarImage src={user.pfp || user.avatarUrl} />
-                        <AvatarFallback>{user.name.charAt(0).toUpperCase()}</AvatarFallback>
+                        <AvatarFallback>{(user.name || 'U').charAt(0).toUpperCase()}</AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col overflow-hidden flex-1 cursor-pointer" onClick={() => isFriend && startChatWith(user)}>
                         <span className="font-semibold text-sm truncate">{user.name}</span>
@@ -275,7 +282,7 @@ export default function ChatPage() {
                     >
                       <Avatar className="w-10 h-10">
                         <AvatarImage src={friend.pfp || friend.avatarUrl} />
-                        <AvatarFallback>{friend.name.charAt(0).toUpperCase()}</AvatarFallback>
+                        <AvatarFallback>{(friend.name || 'U').charAt(0).toUpperCase()}</AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col flex-1 overflow-hidden">
                         <span className="font-semibold text-sm truncate">{friend.name}</span>
@@ -297,7 +304,7 @@ export default function ChatPage() {
               <CardHeader className="border-b bg-card p-4 flex flex-row items-center gap-3">
                 <Avatar className="w-10 h-10">
                   <AvatarImage src={activeChat.pfp || activeChat.avatarUrl} />
-                  <AvatarFallback>{activeChat.name.charAt(0).toUpperCase()}</AvatarFallback>
+                  <AvatarFallback>{(activeChat.name || 'U').charAt(0).toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col">
                   <span className="font-semibold">{activeChat.name}</span>
