@@ -2,7 +2,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://openbox-0t
 
 function getAuthToken() {
   if (typeof window !== 'undefined') {
-    return localStorage.getItem('token');
+    return localStorage.getItem('token') || sessionStorage.getItem('token');
   }
   return null;
 }
@@ -669,6 +669,9 @@ export async function addFriend(friendId) {
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify({ friendId })
   });
-  if (!res.ok) throw new Error("Failed to add friend");
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Failed to add friend: ${errText}`);
+  }
   return res.json();
 }
