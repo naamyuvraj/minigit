@@ -10,6 +10,9 @@ router.use(authenticateToken);
 // Get user profile
 router.get("/", UserController.getProfile);
 
+// Get user personal stats
+router.get("/stats", UserController.getPersonalStats);
+
 // Get user recent activity
 router.get("/activity", UserController.getActivity);
 

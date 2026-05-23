@@ -29,6 +29,76 @@ class UserController {
     }
   }
 
+  // Get Personal Stats (Dashboard)
+  async getPersonalStats(req, res) {
+    try {
+      const userId = req.user.id;
+      
+      const totalProjects = await Project.countDocuments({
+        $or: [{ user_id: userId }, { collaborators: userId }]
+      });
+
+      const totalCommits = await Commit.countDocuments({ user_id: userId });
+      
+      const objectId = new mongoose.Types.ObjectId(userId);
+      const changesAgg = await Commit.aggregate([
+        { $match: { user_id: objectId } },
+        { $project: { _id: 0, filesCount: { $size: { $ifNull: ["$files", []] } } } },
+        { $group: { _id: null, totalChanges: { $sum: "$filesCount" } } }
+      ]);
+      const totalChanges = changesAgg.length > 0 ? changesAgg[0].totalChanges : 0;
+
+      // Calculate streak based on commits grouped by day
+      const commits = await Commit.find({ user_id: userId })
+        .sort({ createdAt: -1 })
+        .select("createdAt");
+
+      let currentStreak = 0;
+      if (commits.length > 0) {
+        let lastDate = new Date(); // Start from today
+        lastDate.setHours(0, 0, 0, 0);
+        
+        let checkedDates = new Set();
+        let streakActive = true;
+        
+        // Normalize commit dates to local start of day
+        const commitDates = commits.map(c => {
+          const d = new Date(c.createdAt);
+          d.setHours(0, 0, 0, 0);
+          return d.getTime();
+        });
+
+        // Check if there's a commit today or yesterday to even have a streak
+        const todayStr = lastDate.getTime();
+        const yesterdayStr = todayStr - 86400000;
+        
+        if (commitDates.includes(todayStr) || commitDates.includes(yesterdayStr)) {
+          let testDate = commitDates.includes(todayStr) ? todayStr : yesterdayStr;
+          
+          while (streakActive) {
+            if (commitDates.includes(testDate)) {
+              currentStreak++;
+              testDate -= 86400000; // go back 1 day
+            } else {
+              streakActive = false;
+            }
+          }
+        }
+      }
+
+      res.status(200).json({
+        stats: {
+          totalProjects,
+          totalCommits,
+          totalChanges,
+          currentStreak
+        }
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+
   // Get user recent activity
   async getActivity(req, res) {
     try {

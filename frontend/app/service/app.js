@@ -629,3 +629,26 @@ export async function getFileDiff(repoId, filePath, fromVersion, toVersion) {
 
 
 export const API_URL = API_BASE_URL;
+export async function getUserStats() {
+  try {
+    const token = getAuthToken();
+
+    const response = await fetch(`${API_BASE_URL}/user/stats`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || errorData.message || "Failed to fetch stats");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error in getUserStats:", error);
+    throw error;
+  }
+}

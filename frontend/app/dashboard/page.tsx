@@ -18,10 +18,10 @@ import {
   DialogFooter,
 } from "@/components/ui/modal"
 import { Label } from "@/components/ui/label"
-import { Plus, Search, MoreVertical, Trash2, Edit, ArrowRight, FileText, Folder } from "lucide-react"
+import { Plus, Search, MoreVertical, Trash2, Edit, ArrowRight, FileText, Folder, Flame, GitCommit, Activity } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { formatDistanceToNow } from "date-fns"
-import { getUserProjects, createProject, commitChanges, deleteProject } from "../service/app"
+import { getUserProjects, createProject, commitChanges, deleteProject, getUserStats } from "../service/app"
 
 interface ProjectItem {
   id: string
@@ -42,6 +42,7 @@ interface Project {
 
 // dashboard page ka start function
 export default function DashboardPage() {
+  const [stats, setStats] = useState<any>(null)
   const [projects, setProjects] = useState<Project[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
@@ -54,8 +55,29 @@ export default function DashboardPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    fetchProjects()
+    fetchData()
   }, [])
+
+  const fetchData = async () => {
+    setIsLoading(true)
+    try {
+      const [projData, statsData] = await Promise.all([
+        getUserProjects().catch(() => ({ projects: [] })),
+        getUserStats().catch(() => ({ stats: null }))
+      ])
+      
+      if (projData && projData.projects) {
+        setProjects(projData.projects)
+      }
+      if (statsData && statsData.stats) {
+        setStats(statsData.stats)
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   // ab server se project laenge
   const fetchProjects = async () => {
@@ -189,8 +211,8 @@ export default function DashboardPage() {
           <div className="container-safe max-w-6xl mx-auto py-8 space-y-6">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
-                <h1 className="text-4xl font-black tracking-tight">Your Projects</h1>
-                <p className="text-muted-foreground mt-2">{projects.length} projects</p>
+                <h1 className="text-4xl font-black tracking-tight">Your Dashboard</h1>
+                <p className="text-muted-foreground mt-2">Manage your projects and see your coding activity.</p>
               </div>
 
               {/* Create Project Button */}
@@ -235,6 +257,48 @@ export default function DashboardPage() {
                 </DialogContent>
               </Dialog>
             </div>
+
+            {/* Top Metrics Cards */}
+            {stats && (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mt-6">
+                <Card className="bg-muted/30 border-muted">
+                  <CardContent className="p-6">
+                    <div className="flex items-center space-x-2">
+                      <Folder className="w-4 h-4 text-primary" />
+                      <h3 className="text-sm font-medium">Total Projects</h3>
+                    </div>
+                    <div className="mt-2 text-2xl font-bold">{stats.totalProjects || 0}</div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-muted/30 border-muted">
+                  <CardContent className="p-6">
+                    <div className="flex items-center space-x-2">
+                      <GitCommit className="w-4 h-4 text-primary" />
+                      <h3 className="text-sm font-medium">Total Commits</h3>
+                    </div>
+                    <div className="mt-2 text-2xl font-bold">{stats.totalCommits || 0}</div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-muted/30 border-muted">
+                  <CardContent className="p-6">
+                    <div className="flex items-center space-x-2">
+                      <Activity className="w-4 h-4 text-primary" />
+                      <h3 className="text-sm font-medium">Changes Made</h3>
+                    </div>
+                    <div className="mt-2 text-2xl font-bold">{stats.totalChanges || 0}</div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-muted/30 border-muted">
+                  <CardContent className="p-6">
+                    <div className="flex items-center space-x-2">
+                      <Flame className="w-4 h-4 text-orange-500" />
+                      <h3 className="text-sm font-medium">Current Streak</h3>
+                    </div>
+                    <div className="mt-2 text-2xl font-bold">{stats.currentStreak || 0} days</div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
 
             {/* Search Bar */}
             <div className="relative">
