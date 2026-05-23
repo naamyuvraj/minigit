@@ -61,9 +61,9 @@ io.on("connection", (socket) => {
       });
 
       // Populate data before emitting
-      const populatedMessage = await newMessage
+      const populatedMessage = await Message.findById(newMessage._id)
         .populate("sender", "name email pfp")
-        .then((msg) => msg.populate("receiver", "name email pfp"));
+        .populate("receiver", "name email pfp");
 
       // Broadcast to both the sender's own room and the receiver's own room
       io.to(data.receiverId).to(data.senderId).emit("receive_message", populatedMessage);
