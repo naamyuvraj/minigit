@@ -136,7 +136,12 @@ export default function ChatPage() {
         return;
       }
       try {
-        const res = await fetch(`${API_URL}/user/search?query=${searchQuery}`);
+        const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+        const res = await fetch(`${API_URL}/user/search?q=${searchQuery}`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
         if (res.ok) {
           const data = await res.json();
           setSearchResults(data.users.filter((u: User) => u._id !== currentUser?._id));
