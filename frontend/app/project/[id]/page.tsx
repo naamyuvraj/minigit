@@ -3,11 +3,12 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { AppLayout } from "@/components/layout/app-layout";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Folder, FileText } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Folder, FileText, Search, UserPlus } from "lucide-react";
 import Link from "next/link";
 
 export default function ProjectPage() {
@@ -19,6 +20,12 @@ export default function ProjectPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("files");
   const [selectedCommit, setSelectedCommit] = useState<any | null>(null);
+
+  // Collaborator search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [addingCollab, setAddingCollab] = useState(false);
 
   const BACKEND =
     process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5170";
@@ -69,6 +76,50 @@ export default function ProjectPage() {
 
   const grouped = groupFiles(files);
 
+  const handleSearchUsers = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    setSearching(true);
+    try {
+      const res = await fetch(`${BACKEND}/profile/search?q=${searchQuery}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      setSearchResults(data.users || []);
+    } catch (err) {
+      console.error("Failed to search users:", err);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const handleAddCollaborator = async (userId: string) => {
+    setAddingCollab(true);
+    try {
+      const res = await fetch(`${BACKEND}/projects/collaborators/${id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ collaboratorId: userId }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      setProject(data.project);
+      
+      // Update local populating temporarily to avoid re-fetch if we want
+      // For a quick fix, just re-running loadAll() is better, but maybe just trust the page refresh or state manually
+      window.location.reload(); 
+    } catch (err) {
+      console.error("Failed to add collaborator:", err);
+      alert("Failed to add collaborator.");
+    } finally {
+      setAddingCollab(false);
+    }
+  };
+
   if (loading)
     // ui yahan ban raha hai
   return (
@@ -113,10 +164,11 @@ export default function ProjectPage() {
               setSelectedCommit(null);
             }}
           >
-            <TabsList className="grid grid-cols-3 mb-8">
+            <TabsList className="grid grid-cols-4 mb-8">
               <TabsTrigger value="files">Files</TabsTrigger>
               <TabsTrigger value="commits">Commits</TabsTrigger>
               <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="collaborators">Collaborators</TabsTrigger>
             </TabsList>
 
             {/* FILES */}
@@ -209,6 +261,97 @@ export default function ProjectPage() {
                   <p className="text-sm">{project.description}</p>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* COLLABORATORS */}
+            <TabsContent value="collaborators" className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Current Team</h3>
+                  <div className="space-y-3">
+                    <Card>
+                      <CardContent className="p-4 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <img src={project.user_id?.avatarUrl || "https://api.dicebear.com/9.x/pixel-art/svg"} alt="avatar" className="w-8 h-8 rounded-full bg-muted" />
+                          <div>
+                            <p className="font-semibold text-sm">{project.user_id?.name || "Unknown"}</p>
+                            <p className="text-xs text-muted-foreground">@{project.user_id?.username || "unknown"}</p>
+                          </div>
+                        </div>
+                        <Badge variant="secondary">Owner</Badge>
+                      </CardContent>
+                    </Card>
+                    
+                    {project.collaborators?.length === 0 && (
+                      <p className="text-sm text-muted-foreground">No collaborators added yet.</p>
+                    )}
+                    
+                    {project.collaborators?.map((c: any) => (
+                      <Card key={c._id}>
+                        <CardContent className="p-4 flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <img src={c.avatarUrl || "https://api.dicebear.com/9.x/pixel-art/svg"} alt="avatar" className="w-8 h-8 rounded-full bg-muted" />
+                            <div>
+                              <p className="font-semibold text-sm">{c.name}</p>
+                              <p className="text-xs text-muted-foreground">@{c.username}</p>
+                            </div>
+                          </div>
+                          <Badge variant="outline">Collaborator</Badge>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Add a Collaborator</h3>
+                  <Card>
+                    <CardContent className="p-4 space-y-4">
+                      <form onSubmit={handleSearchUsers} className="flex gap-2">
+                        <Input 
+                          placeholder="Search username or name..." 
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                        <Button type="submit" disabled={searching}>
+                          {searching ? "..." : <Search className="w-4 h-4" />}
+                        </Button>
+                      </form>
+
+                      <div className="space-y-2 mt-4">
+                        {searchResults.map((user) => {
+                          const isOwner = project.user_id?._id === user._id || project.user_id === user._id;
+                          const isCollab = project.collaborators?.some((c: any) => c._id === user._id || c === user._id);
+                          const alreadyIn = isOwner || isCollab;
+
+                          return (
+                            <div key={user._id} className="flex items-center justify-between p-2 border rounded-md">
+                              <div className="flex items-center gap-2">
+                                <img src={user.avatarUrl} alt="avatar" className="w-6 h-6 rounded-full" />
+                                <div>
+                                  <p className="text-xs font-semibold">{user.name}</p>
+                                  <p className="text-[10px] text-muted-foreground">@{user.username}</p>
+                                </div>
+                              </div>
+                              <Button 
+                                size="sm" 
+                                variant={alreadyIn ? "ghost" : "default"} 
+                                disabled={alreadyIn || addingCollab}
+                                onClick={() => handleAddCollaborator(user._id)}
+                              >
+                                {alreadyIn ? "Added" : "Add"}
+                              </Button>
+                            </div>
+                          );
+                        })}
+                        {searchResults.length === 0 && searchQuery && !searching && (
+                          <p className="text-sm text-muted-foreground">No users found. Try searching again.</p>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
             </TabsContent>
           </Tabs>
         </div>

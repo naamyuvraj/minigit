@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
 import User from "../models/user.model.js";
 import Commit from "../models/commit.model.js";
+import Project from "../models/repo.model.js";
 
 // User controller class
 class UserController {
@@ -31,11 +32,23 @@ class UserController {
   // Get user recent activity
   async getActivity(req, res) {
     try {
-      // Find latest 20 commits by the user or on user's projects
-      // For simplicity, let's fetch user's own commits
-      const commits = await Commit.find({ user_id: req.user.id })
+      // Find latest 20 commits by the user or on projects the user owns/collaborates on
+      const userProjects = await Project.find({
+        $or: [
+          { user_id: req.user.id },
+          { collaborators: req.user.id }
+        ]
+      }).select('_id');
+      const projectIds = userProjects.map(p => p._id);
+
+      const commits = await Commit.find({
+        $or: [
+          { user_id: req.user.id },
+          { repo_id: { $in: projectIds } }
+        ]
+      })
         .sort({ createdAt: -1 })
-        .limit(20)
+        .limit(30)
         .populate("repo_id", "name")
         .populate("user_id", "name avatarUrl");
       
@@ -54,6 +67,28 @@ class UserController {
       });
 
       res.status(200).json({ activity });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+
+  // Search users by username
+  async searchUsers(req, res) {
+    try {
+      const { q } = req.query;
+      if (!q) return res.status(200).json({ users: [] });
+      
+      const users = await User.find({
+        $or: [
+          { username: { $regex: q, $options: "i" } },
+          { name: { $regex: q, $options: "i" } }
+        ]
+      })
+      .select("_id name username avatarUrl")
+      .limit(10)
+      .lean();
+
+      res.status(200).json({ users });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

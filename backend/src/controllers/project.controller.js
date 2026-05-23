@@ -44,11 +44,21 @@ class ProjectController {
   // Get single project details
   async getProjectDetails(req, res) {
     try {
-      const project = await Project.findById(req.params.id);
+      const project = await Project.findById(req.params.id)
+        .populate("user_id", "name username avatarUrl")
+        .populate("collaborators", "name username avatarUrl");
       if (!project) return res.status(404).json({ message: "Not found" });
+      
+      // Check if user has access
+      const isOwner = project.user_id._id.toString() === req.user.id;
+      const isCollaborator = project.collaborators.some(c => c._id.toString() === req.user.id);
+      if (!isOwner && !isCollaborator) {
+         return res.status(403).json({ message: "Access denied" });
+      }
+
       const files = await File.find({ repo_id: req.params.id }).sort({ file_path: 1 });
       const fileTree = buildFileTree(files);
-      const commits = await Commit.find({ repo_id: req.params.id }).sort({ createdAt: -1 }).limit(50);
+      const commits = await Commit.find({ repo_id: req.params.id }).sort({ createdAt: -1 }).limit(50).populate("user_id", "name avatarUrl");
       res.status(200).json({ project, files, fileTree, commits });
     } catch (err) {
       res.status(500).json({ message: err.message });
@@ -71,7 +81,15 @@ class ProjectController {
   // Get user projects
   async getUserProjects(req, res) {
     try {
-      const projects = await Project.find({ user_id: req.user.id }).sort({ createdAt: -1 });
+      const projects = await Project.find({
+        $or: [
+          { user_id: req.user.id },
+          { collaborators: req.user.id }
+        ]
+      })
+      .populate("user_id", "name username avatarUrl")
+      .populate("collaborators", "name username avatarUrl")
+      .sort({ createdAt: -1 });
       res.status(200).json({ projects });
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -96,6 +114,15 @@ class ProjectController {
       if (!collaboratorId) return res.status(400).json({ message: "Need ID" });
       const project = await Project.findById(req.params.id);
       if (!project) return res.status(404).json({ message: "Not found" });
+      
+      if (project.user_id.toString() !== req.user.id) {
+        return res.status(403).json({ message: "Only the owner can add collaborators" });
+      }
+
+      if (project.user_id.toString() === collaboratorId) {
+         return res.status(400).json({ message: "Cannot add owner as collaborator" });
+      }
+
       if (!project.collaborators.includes(collaboratorId)) {
         project.collaborators.push(collaboratorId);
         await project.save();

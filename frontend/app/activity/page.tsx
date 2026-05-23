@@ -141,6 +141,29 @@ export default function ActivityPage() {
     return matchesSearch && matchesType
   })
 
+  // Stack consecutive activities for the same project on the same day
+  const stackedActivities: ActivityLog[][] = []
+  let currentStack: ActivityLog[] = []
+
+  filtered.forEach((activity) => {
+    if (currentStack.length === 0) {
+      currentStack.push(activity)
+    } else {
+      const prev = currentStack[currentStack.length - 1]
+      const prevDate = new Date(prev.timestamp).toDateString()
+      const currDate = new Date(activity.timestamp).toDateString()
+      if (prev.projectId === activity.projectId && prevDate === currDate) {
+        currentStack.push(activity)
+      } else {
+        stackedActivities.push(currentStack)
+        currentStack = [activity]
+      }
+    }
+  })
+  if (currentStack.length > 0) {
+    stackedActivities.push(currentStack)
+  }
+
   return (
     <AppLayout>
       <div className="min-h-screen bg-background">
@@ -214,53 +237,69 @@ export default function ActivityPage() {
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-6">
               {/* Timeline */}
               <div className="relative">
-                {filtered.map((activity, index) => {
-                  const ActionIcon = actionIcons[activity.type]
+                {stackedActivities.map((stack, stackIndex) => {
+                  const headActivity = stack[0]
+                  const ActionIcon = actionIcons[headActivity.type]
+
                   return (
-                    <div key={activity.id} className="flex gap-4">
+                    <div key={`stack-${stackIndex}`} className="flex gap-4 relative mb-6">
                       {/* Timeline line */}
-                      {index !== filtered.length - 1 && (
-                        <div className="absolute left-[19px] top-14 bottom-0 w-0.5 bg-border" />
+                      {stackIndex !== stackedActivities.length - 1 && (
+                        <div className="absolute left-[19px] top-14 -bottom-6 w-0.5 bg-border" />
                       )}
 
                       {/* Timeline dot */}
                       <div className="flex-shrink-0 relative">
-                        <div className="w-10 h-10 rounded-full bg-foreground/10 flex items-center justify-center border border-border relative z-10">
+                        <div className="w-10 h-10 rounded-full bg-foreground/10 flex items-center justify-center border border-border relative z-10 mt-1">
                           <ActionIcon className="w-5 h-5 text-foreground" />
                         </div>
                       </div>
 
-                      {/* Activity card */}
-                      <div className="flex-1 pt-1">
-                        <Card className="hover:shadow-md transition-smooth">
-                          <CardContent className="py-4 px-4 flex items-center justify-between">
-                            <div className="flex items-center gap-3 flex-1 min-w-0">
-                              <Avatar className="w-10 h-10 flex-shrink-0">
-                                <AvatarFallback className="bg-foreground text-background">
-                                  {activity.avatar}
-                                </AvatarFallback>
-                              </Avatar>
+                      {/* Stacked Activity cards */}
+                      <div className="flex-1 pt-1 space-y-2">
+                        {stack.map((activity, itemIndex) => (
+                          <Card 
+                            key={activity.id} 
+                            className={`hover:shadow-md transition-smooth relative ${
+                              itemIndex > 0 ? "ml-4 border-l-4 border-l-primary/50" : ""
+                            }`}
+                          >
+                            <CardContent className="py-4 px-4 flex items-center justify-between">
+                              <div className="flex items-center gap-3 flex-1 min-w-0">
+                                <Avatar className="w-10 h-10 flex-shrink-0">
+                                  <AvatarFallback className="bg-foreground text-background">
+                                    {activity.avatar}
+                                  </AvatarFallback>
+                                </Avatar>
 
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 flex-wrap mb-1">
-                                  <span className="font-medium text-sm">{activity.actor}</span>
-                                  <span className="text-muted-foreground text-sm">{activity.action}</span>
-                                  <Badge variant={getActionBadgeVariant(activity.type)} className="text-xs">
-                                    {activity.type}
-                                  </Badge>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                                    <span className="font-medium text-sm">{activity.actor}</span>
+                                    <span className="text-muted-foreground text-sm">{activity.action}</span>
+                                    <Badge variant={getActionBadgeVariant(activity.type)} className="text-[10px] uppercase">
+                                      {activity.type}
+                                    </Badge>
+                                  </div>
+                                  <p className="text-sm text-muted-foreground truncate font-semibold">
+                                    {activity.target}
+                                  </p>
+                                  {(activity as any).message && (
+                                    <p className="text-sm text-muted-foreground italic truncate mt-1">
+                                      "{ (activity as any).message }"
+                                    </p>
+                                  )}
                                 </div>
-                                <p className="text-sm text-muted-foreground truncate">{activity.target}</p>
                               </div>
-                            </div>
 
-                            <div className="text-xs text-muted-foreground flex-shrink-0 ml-4">
-                              {formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true })}
-                            </div>
-                          </CardContent>
-                        </Card>
+                              <div className="text-xs text-muted-foreground flex-shrink-0 ml-4">
+                                {formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true })}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
                       </div>
                     </div>
                   )

@@ -1,5 +1,6 @@
 import File from "../models/file.model.js";
 import Commit from "../models/commit.model.js";
+import Project from "../models/repo.model.js";
 import DiffMatchPatch from "diff-match-patch";
 
 const dmp = new DiffMatchPatch();
@@ -35,6 +36,15 @@ class FileController {
 
       const file = await File.findById(fileId);
       if (!file) return res.status(404).json({ message: "Not found" });
+
+      const project = await Project.findById(project_id || file.repo_id);
+      if (!project) return res.status(404).json({ message: "Project not found" });
+
+      const isOwner = project.user_id.toString() === user_id;
+      const isCollaborator = project.collaborators.some(c => c.toString() === user_id);
+      if (!isOwner && !isCollaborator) {
+        return res.status(403).json({ message: "Not authorized to commit to this project" });
+      }
 
       const oldContent = file.latest_content;
       const oldVersion = file.latest_version;

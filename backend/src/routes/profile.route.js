@@ -13,6 +13,9 @@ router.get("/", UserController.getProfile);
 // Get user recent activity
 router.get("/activity", UserController.getActivity);
 
+// Search users
+router.get("/search", UserController.searchUsers);
+
 // Update user details
 router.put("/", UserController.updateBioAvatar);
 

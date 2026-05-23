@@ -109,6 +109,15 @@ class CommitController {
         return res.status(400).json({ error: "No files" });
       }
 
+      const project = await Project.findById(repo_id);
+      if (!project) return res.status(404).json({ error: "Project not found" });
+
+      const isOwner = project.user_id.toString() === user_id;
+      const isCollaborator = project.collaborators.some(c => c.toString() === user_id);
+      if (!isOwner && !isCollaborator) {
+        return res.status(403).json({ error: "Not authorized to commit to this project" });
+      }
+
       let processedFiles = [];
       for (const f of files) {
         let existingFile = await File.findOne({
