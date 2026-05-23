@@ -2,19 +2,21 @@
 
 import { useEffect, useState, useRef, FormEvent } from "react";
 import { AppLayout } from "@/components/layout/app-layout";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Send, MessageSquare, Search, UserPlus } from "lucide-react";
+import { Send, MessageSquare, Search, UserPlus, Check } from "lucide-react";
 import io, { Socket } from "socket.io-client";
-import { getAuthProfile, API_URL } from "@/app/service/app";
+import { getAuthProfile, API_URL, getFriends, addFriend } from "@/app/service/app";
+import { useToast } from "@/hooks/use-toast";
 
 interface User {
   _id: string;
   name: string;
   email: string;
   pfp?: string;
+  avatarUrl?: string;
 }
 
 interface Message {
@@ -25,14 +27,10 @@ interface Message {
   createdAt: string;
 }
 
-interface Conversation {
-  user: User;
-  lastMessage: Message;
-}
-
 export default function ChatPage() {
+  const { toast } = useToast();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [friends, setFriends] = useState<User[]>([]);
   const [activeChat, setActiveChat] = useState<User | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   
@@ -51,7 +49,7 @@ export default function ChatPage() {
         const u = await getAuthProfile();
         if (u) setCurrentUser(u);
         
-        await loadConversations();
+        await loadFriends();
       } catch (error) {
         console.error("Failed to init chat", error);
       } finally {
@@ -61,21 +59,12 @@ export default function ChatPage() {
     initChat();
   }, []);
 
-  const loadConversations = async () => {
+  const loadFriends = async () => {
     try {
-      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
-      const res = await fetch(`${API_URL}/api/chat/conversations`, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setConversations(data);
-      }
+      const data = await getFriends();
+      setFriends(data);
     } catch (error) {
-      console.error(error);
+      console.error("Error loading friends:", error);
     }
   };
 
@@ -90,7 +79,6 @@ export default function ChatPage() {
     });
 
     newSocket.on("receive_message", (msg: Message) => {
-      // If the message is for the currently active chat, append it
       setActiveChat((currentActive) => {
         if (
           currentActive && 
@@ -100,9 +88,6 @@ export default function ChatPage() {
         }
         return currentActive;
       });
-      
-      // Always refresh conversations list so side panel shows latest message
-      loadConversations();
     });
 
     setSocket(newSocket);
@@ -112,7 +97,7 @@ export default function ChatPage() {
     };
   }, [currentUser]);
 
-  // Load chat history when switching active chat
+  // Load chat history
   useEffect(() => {
     if (!activeChat) return;
 
@@ -154,8 +139,7 @@ export default function ChatPage() {
         const res = await fetch(`${API_URL}/user/search?query=${searchQuery}`);
         if (res.ok) {
           const data = await res.json();
-          // filter out self
-          setSearchResults(data.filter((u: User) => u._id !== currentUser?._id));
+          setSearchResults(data.users.filter((u: User) => u._id !== currentUser?._id));
         }
       } catch (error) {
         console.error(error);
@@ -179,18 +163,23 @@ export default function ChatPage() {
     setInputValue("");
   };
 
+  const handleAddFriend = async (user: User) => {
+    try {
+      await addFriend(user._id);
+      toast({ title: "Friend Added", description: `You can now chat with ${user.name}` });
+      await loadFriends();
+      setSearchQuery("");
+      setSearchResults([]);
+      setActiveChat(user);
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Cannot Add Friend", description: error.message || "Failed to add friend" });
+    }
+  };
+
   const startChatWith = (user: User) => {
     setSearchQuery("");
     setSearchResults([]);
     setActiveChat(user);
-    
-    // Optimistically add to conversations list if not there
-    if (!conversations.find((c) => c.user._id === user._id)) {
-      setConversations([{
-        user,
-        lastMessage: { _id: "new", content: "Say hi!", createdAt: new Date().toISOString() } as Message
-      }, ...conversations]);
-    }
   };
 
   if (loading) {
@@ -218,11 +207,11 @@ export default function ChatPage() {
         {/* Left Side: Friends/Conversations */}
         <Card className="w-1/3 flex flex-col border-muted bg-background/50 backdrop-blur overflow-hidden">
           <CardHeader className="border-b bg-card p-4 space-y-4">
-            <CardTitle>Chats</CardTitle>
+            <CardTitle>Friends List</CardTitle>
             <div className="relative">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search users to chat..."
+                placeholder="Search global users to add..."
                 className="pl-9 bg-background/50"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -234,49 +223,58 @@ export default function ChatPage() {
             {searchQuery && searchResults.length > 0 ? (
               <div className="p-2">
                 <span className="text-xs font-semibold text-muted-foreground uppercase px-2 mb-2 block">Search Results</span>
-                {searchResults.map((user) => (
-                  <div
-                    key={user._id}
-                    onClick={() => startChatWith(user)}
-                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
-                  >
-                    <Avatar className="w-10 h-10">
-                      <AvatarImage src={user.pfp} />
-                      <AvatarFallback>{user.name.charAt(0).toUpperCase()}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex flex-col overflow-hidden">
-                      <span className="font-semibold text-sm truncate">{user.name}</span>
-                      <span className="text-xs text-muted-foreground truncate">{user.email}</span>
+                {searchResults.map((user) => {
+                  const isFriend = friends.some((f) => f._id === user._id);
+                  return (
+                    <div
+                      key={user._id}
+                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors group"
+                    >
+                      <Avatar className="w-10 h-10 cursor-pointer" onClick={() => isFriend && startChatWith(user)}>
+                        <AvatarImage src={user.pfp || user.avatarUrl} />
+                        <AvatarFallback>{user.name.charAt(0).toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col overflow-hidden flex-1 cursor-pointer" onClick={() => isFriend && startChatWith(user)}>
+                        <span className="font-semibold text-sm truncate">{user.name}</span>
+                        <span className="text-xs text-muted-foreground truncate">{user.email || `@${user.username}`}</span>
+                      </div>
+                      
+                      {isFriend ? (
+                        <Button variant="ghost" size="icon" disabled className="text-green-500">
+                          <Check className="w-4 h-4" />
+                        </Button>
+                      ) : (
+                        <Button variant="ghost" size="icon" onClick={() => handleAddFriend(user)}>
+                          <UserPlus className="w-4 h-4 text-primary" />
+                        </Button>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="p-2 space-y-1">
-                {conversations.length === 0 ? (
-                  <div className="text-center p-6 text-muted-foreground text-sm">
-                    No active chats. Search for a friend above to start chatting!
+                {friends.length === 0 ? (
+                  <div className="text-center p-6 text-muted-foreground text-sm flex flex-col items-center gap-2">
+                    <UserPlus className="w-8 h-8 opacity-50" />
+                    <span>No friends yet. Search above to add friends and start chatting!</span>
                   </div>
                 ) : (
-                  conversations.map((conv) => (
+                  friends.map((friend) => (
                     <div
-                      key={conv.user._id}
-                      onClick={() => setActiveChat(conv.user)}
+                      key={friend._id}
+                      onClick={() => startChatWith(friend)}
                       className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
-                        activeChat?._id === conv.user._id ? "bg-muted" : "hover:bg-muted/50"
+                        activeChat?._id === friend._id ? "bg-muted" : "hover:bg-muted/50"
                       }`}
                     >
                       <Avatar className="w-10 h-10">
-                        <AvatarImage src={conv.user.pfp} />
-                        <AvatarFallback>{conv.user.name.charAt(0).toUpperCase()}</AvatarFallback>
+                        <AvatarImage src={friend.pfp || friend.avatarUrl} />
+                        <AvatarFallback>{friend.name.charAt(0).toUpperCase()}</AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col flex-1 overflow-hidden">
-                        <div className="flex justify-between items-baseline shrink-0">
-                          <span className="font-semibold text-sm">{conv.user.name}</span>
-                        </div>
-                        <span className="text-xs text-muted-foreground truncate h-4">
-                          {conv.lastMessage?.content}
-                        </span>
+                        <span className="font-semibold text-sm truncate">{friend.name}</span>
+                        <span className="text-xs text-muted-foreground truncate">{friend.email || `@${friend.username}`}</span>
                       </div>
                     </div>
                   ))
@@ -293,12 +291,12 @@ export default function ChatPage() {
               {/* Chat Header */}
               <CardHeader className="border-b bg-card p-4 flex flex-row items-center gap-3">
                 <Avatar className="w-10 h-10">
-                  <AvatarImage src={activeChat.pfp} />
+                  <AvatarImage src={activeChat.pfp || activeChat.avatarUrl} />
                   <AvatarFallback>{activeChat.name.charAt(0).toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col">
                   <span className="font-semibold">{activeChat.name}</span>
-                  <span className="text-xs text-muted-foreground">{activeChat.email}</span>
+                  <span className="text-xs text-muted-foreground">{activeChat.email || `@${activeChat.username}`}</span>
                 </div>
               </CardHeader>
               
@@ -310,7 +308,7 @@ export default function ChatPage() {
                 >
                   {messages.length === 0 ? (
                     <div className="flex h-full items-center justify-center text-muted-foreground text-sm">
-                      Be the first to say hi to {activeChat.name}!
+                      Send your first message to {activeChat.name}!
                     </div>
                   ) : (
                     messages.map((msg, index) => {
@@ -358,9 +356,9 @@ export default function ChatPage() {
             // No Active Chat State
             <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
               <MessageSquare className="w-16 h-16 mb-4 opacity-20" />
-              <h2 className="text-xl font-semibold mb-2">WhatsApp for OpenBox</h2>
+              <h2 className="text-xl font-semibold mb-2">Your Friends</h2>
               <p className="max-w-[280px] text-center text-sm">
-                Select a conversation from the left or search for a friend to start chatting.
+                Select a friend from the left or search someone globally to start a chat.
               </p>
             </div>
           )}

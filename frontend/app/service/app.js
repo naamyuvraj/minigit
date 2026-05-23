@@ -652,3 +652,23 @@ export async function getUserStats() {
     throw error;
   }
 }
+
+export async function getFriends() {
+  const token = getAuthToken();
+  const res = await fetch(`${API_BASE_URL}/user/friends`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!res.ok) throw new Error("Failed to get friends");
+  return res.json();
+}
+
+export async function addFriend(friendId) {
+  const token = getAuthToken();
+  const res = await fetch(`${API_BASE_URL}/user/friends`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ friendId })
+  });
+  if (!res.ok) throw new Error("Failed to add friend");
+  return res.json();
+}
