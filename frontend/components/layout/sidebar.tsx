@@ -29,7 +29,7 @@ const sidebarItems = [
   { href: "/dashboard", label: "Dashboard", icon: Home },
   { href: "/projects", label: "Projects", icon: FolderOpen },
   { href: "/activity", label: "Activity", icon: Activity },
-  { href: "/admin", label: "Admin", icon: Users },
+  { href: "/chat", label: "Chat", icon: Users },
 ]
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
