@@ -204,7 +204,7 @@ class UserController {
   // Get friends
   async getFriends(req, res) {
     try {
-      const user = await User.findById(req.user.id).populate("friends", "name email pfp avatarUrl username");
+      const user = await User.findById(req.user.id).populate("friends", "name email avatarUrl username");
       if (!user) return res.status(404).json({ message: "Not found" });
       res.status(200).json(user.friends || []);
     } catch (err) {
@@ -242,7 +242,7 @@ class UserController {
         await friend.save();
       }
 
-      const friendObj = { _id: friend._id, name: friend.name, email: friend.email, avatarUrl: friend.avatarUrl, pfp: friend.pfp };
+      const friendObj = { _id: friend._id, name: friend.name, email: friend.email, avatarUrl: friend.avatarUrl };
       res.status(200).json({ message: "Friend added successfully", friend: friendObj });
     } catch (err) {
       res.status(500).json({ error: err.message });

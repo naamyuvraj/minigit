@@ -52,7 +52,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("send_message", async (data) => {
-    try {
+    try { console.log("Received send_message event:", data);
       // Save Message to DB
       const newMessage = await Message.create({
         sender: data.senderId,
@@ -62,8 +62,8 @@ io.on("connection", (socket) => {
 
       // Populate data before emitting
       const populatedMessage = await Message.findById(newMessage._id)
-        .populate("sender", "name email pfp")
-        .populate("receiver", "name email pfp");
+        .populate("sender", "name email avatarUrl")
+        .populate("receiver", "name email avatarUrl");
 
       // Broadcast to both the sender's own room and the receiver's own room
       io.to(data.receiverId).to(data.senderId).emit("receive_message", populatedMessage);

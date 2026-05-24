@@ -19,7 +19,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Edit, Lock, Upload, Save } from "lucide-react";
 
-import { getUserProfile, updateUserProfile } from "../service/app";
+import { getUserProfile, updateUserProfile, updatePassword } from "../service/app";
 
 // User Profile Type
 interface UserProfile {
@@ -119,12 +119,24 @@ export default function ProfilePage() {
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       const base64 = event.target?.result as string;
       setEditedProfile((prev) =>
         prev ? { ...prev, avatarUrl: base64 } : prev
       );
       setProfile((prev) => (prev ? { ...prev, avatarUrl: base64 } : prev));
+      
+      // Auto-save the avatar when uploaded
+      try {
+        if (editedProfile) {
+          await updateUserProfile({
+            ...editedProfile,
+            avatarUrl: base64,
+          });
+        }
+      } catch (err) {
+        console.error("Avatar update failed:", err);
+      }
     };
     reader.readAsDataURL(file);
   };
@@ -347,23 +359,7 @@ export default function ProfilePage() {
                             return;
 
                           try {
-                            const token = localStorage.getItem("token"); // your JWT
-                            const res = await fetch(
-                              "https://openbox-0tuh.onrender.com/user/change-password",
-                              {
-                                method: "POST",
-                                headers: {
-                                  "Content-Type": "application/json",
-                                  Authorization: `Bearer ${token}`,
-                                },
-                                body: JSON.stringify({ newPassword }),
-                              }
-                            );
-
-                            const data = await res.json();
-
-                            if (!res.ok)
-                              throw new Error(data.message || "Failed");
+                            await updatePassword(newPassword);
 
                             alert("✅ Password changed successfully!");
                             setIsChangingPassword(false);

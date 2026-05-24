@@ -16,8 +16,8 @@ export const ChatController = {
           { sender: userId, receiver: currentUserId },
         ],
       })
-        .populate("sender", "name email pfp")
-        .populate("receiver", "name email pfp")
+        .populate("sender", "name email avatarUrl username")
+        .populate("receiver", "name email avatarUrl username")
         .sort({ createdAt: 1 })
         .limit(200);
 
@@ -37,8 +37,8 @@ export const ChatController = {
         $or: [{ sender: currentUserId }, { receiver: currentUserId }],
       })
         .sort({ createdAt: -1 })
-        .populate("sender", "name email pfp")
-        .populate("receiver", "name email pfp");
+        .populate("sender", "name email avatarUrl username")
+        .populate("receiver", "name email avatarUrl username");
 
       const conversationMap = new Map();
 

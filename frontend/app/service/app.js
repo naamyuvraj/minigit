@@ -310,6 +310,32 @@ export async function updateUserProfile(profileData) {
   }
 }
 
+export async function updatePassword(newPassword) {
+  try {
+    const token = getAuthToken();
+
+    const response = await fetch(`${API_BASE_URL}/user/password`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ newPassword }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to update password');
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error updating password:', error);
+    throw error;
+  }
+}
+
 export async function getFileById(fileId) {
   try {
     const token = getAuthToken();
@@ -672,6 +698,19 @@ export async function addFriend(friendId) {
   if (!res.ok) {
     const errText = await res.text();
     throw new Error(`Failed to add friend: ${errText}`);
+  }
+  return res.json();
+}
+
+export async function getMessages(userId) {
+  const token = getAuthToken();
+  const res = await fetch(`${API_BASE_URL}/api/chat/messages?userId=${userId}`, {
+    method: "GET",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Failed to get messages: ${errText}`);
   }
   return res.json();
 }

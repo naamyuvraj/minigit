@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Send, MessageSquare, Search, UserPlus, Check } from "lucide-react";
 import io, { Socket } from "socket.io-client";
-import { getAuthProfile, API_URL, getFriends, addFriend } from "@/app/service/app";
+import { getAuthProfile, API_URL, getFriends, addFriend, getMessages } from "@/app/service/app";
 import { useToast } from "@/hooks/use-toast";
 
 interface User {
