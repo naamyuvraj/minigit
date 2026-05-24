@@ -109,9 +109,8 @@ export default function ProjectPage() {
       const data = await res.json();
       setProject(data.project);
       
-      // Update local populating temporarily to avoid re-fetch if we want
-      // For a quick fix, just re-running loadAll() is better, but maybe just trust the page refresh or state manually
-      window.location.reload(); 
+      // Update local state by re-running search so user's added state refreshes
+      setSearchResults(prev => [...prev]); 
     } catch (err) {
       console.error("Failed to add collaborator:", err);
       alert("Failed to add collaborator.");

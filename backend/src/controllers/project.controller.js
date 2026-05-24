@@ -111,10 +111,15 @@ class ProjectController {
   async addCollaborator(req, res) {
     try {
       const { collaboratorId } = req.body;
+      console.log('addCollaborator called details:', { projectId: req.params.id, collaboratorId, userId: req.user.id });
       if (!collaboratorId) return res.status(400).json({ message: "Need ID" });
       const project = await Project.findById(req.params.id);
-      if (!project) return res.status(404).json({ message: "Not found" });
+      if (!project) {
+        console.log('addCollaborator: project not found');
+        return res.status(404).json({ message: "Not found" });
+      }
       
+      console.log('addCollaborator: project.user_id', project.user_id.toString());
       if (project.user_id.toString() !== req.user.id) {
         return res.status(403).json({ message: "Only the owner can add collaborators" });
       }
@@ -123,12 +128,25 @@ class ProjectController {
          return res.status(400).json({ message: "Cannot add owner as collaborator" });
       }
 
-      if (!project.collaborators.includes(collaboratorId)) {
+      const isAlreadyAdded = project.collaborators.some(
+        c => c.toString() === collaboratorId
+      );
+      if (!isAlreadyAdded) {
         project.collaborators.push(collaboratorId);
         await project.save();
+        console.log('addCollaborator: added');
+      } else {
+        console.log('addCollaborator: already includes');
       }
+
+      // Populate before sending back to avoid frontend undefined ID bugs
+      await project.populate([
+        { path: 'collaborators', select: 'name username avatarUrl' },
+        { path: 'user_id', select: 'name username avatarUrl' }
+      ]);
       res.status(200).json({ message: "Added", project });
     } catch (err) {
+      console.log('addCollaborator error:', err.message);
       res.status(500).json({ error: err.message });
     }
   }
