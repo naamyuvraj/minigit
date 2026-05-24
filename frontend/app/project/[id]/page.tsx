@@ -238,64 +238,36 @@ export default function ProjectPage() {
                 <div className="mt-6">
                   <h4 className="text-lg font-semibold mb-2">Files Changed</h4>
                   {selectedCommit.files.map((f: any) => {
-                    const decodedDiff = decodeURIComponent(f.diff);
-                    const parsedLines = decodedDiff.split('\n').filter(l => l.trim() !== '');
-                    let oldLineNum = 0;
-                    let newLineNum = 0;
+                    const parsedLines = f.diff.split('\n').filter((l: string) => l.trim() !== '');
 
                     return (
                       <Card key={f.file_id}>
                         <CardContent className="p-4">
                           <p className="font-semibold mb-2">{f.file_name}</p>
                           <div
-                            className="max-w-full overflow-auto text-sm py-2 border border-border rounded whitespace-pre-wrap font-mono relative"
+                            className="max-w-full overflow-auto text-sm p-4 border border-border rounded whitespace-pre-wrap font-mono leading-relaxed"
                             style={{ backgroundColor: "#1e1e1e" }}
                           >
-                            <table className="w-full text-left border-collapse">
-                              <tbody>
-                                {parsedLines.map((line: string, i: number) => {
-                                  if (line.startsWith('@@')) {
-                                    // Parse @@ -12,4 +12,5 @@
-                                    const match = line.match(/@@ -(\d+),?\d* \+(\d+),?\d* @@/);
-                                    if (match) {
-                                      oldLineNum = parseInt(match[1]);
-                                      newLineNum = parseInt(match[2]);
-                                    }
-                                    return (
-                                      <tr key={i} className="bg-blue-900/30 text-blue-400">
-                                        <td className="px-2 border-r border-gray-700/50 select-none text-right opacity-50 w-12 border-b-0">...</td>
-                                        <td className="px-2 border-r border-gray-700/50 select-none text-right opacity-50 w-12 ">...</td>
-                                        <td className="px-4 py-1 italic font-semibold text-xs">{(line.replace(/@@.*@@/, '').trim()) || 'Context'}</td>
-                                      </tr>
-                                    );
-                                  }
+                            {parsedLines.map((line: string, i: number) => {
+                              if (line.startsWith('@@')) {
+                                return (
+                                  <div key={i} className="text-blue-400 py-1 font-bold px-2 bg-blue-900/20 mb-2 mt-4 inline-block rounded select-none">
+                                    -- Code Snippet Changed --
+                                  </div>
+                                );
+                              }
 
-                                  const isAdded = line.startsWith('+');
-                                  const isRemoved = line.startsWith('-');
-                                  const content = line.substring(1) || ' ';
+                              const op = line[0];
+                              const text = decodeURIComponent(line.substring(1));
 
-                                  let currentOld = '';
-                                  let currentNew = '';
-
-                                  if (isAdded) {
-                                    currentNew = (newLineNum++).toString();
-                                  } else if (isRemoved) {
-                                    currentOld = (oldLineNum++).toString();
-                                  } else {
-                                    currentOld = (oldLineNum++).toString();
-                                    currentNew = (newLineNum++).toString();
-                                  }
-
-                                  return (
-                                    <tr key={i} className={`${isAdded ? 'bg-green-500/20 text-green-300' : isRemoved ? 'bg-red-500/20 text-red-300' : 'text-gray-300'}`}>
-                                      <td className="px-2 border-r border-gray-700/50 select-none text-right opacity-50 w-12 align-top">{currentOld}</td>
-                                      <td className="px-2 border-r border-gray-700/50 select-none text-right opacity-50 w-12 align-top">{currentNew}</td>
-                                      <td className="px-4 whitespace-pre drop-shadow-md">{content}</td>
-                                    </tr>
-                                  );
-                                })}
-                              </tbody>
-                            </table>
+                              if (op === '+') {
+                                return <span key={i} className="bg-green-500/30 text-green-300 px-1 py-0.5 rounded">{text}</span>;
+                              } else if (op === '-') {
+                                return <span key={i} className="bg-red-500/30 text-red-300 line-through px-1 py-0.5 rounded">{text}</span>;
+                              } else {
+                                return <span key={i} className="text-gray-300">{text}</span>;
+                              }
+                            })}
                           </div>
                         </CardContent>
                       </Card>
