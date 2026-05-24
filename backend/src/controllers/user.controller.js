@@ -9,7 +9,7 @@ class UserController {
   // Get user profile
   async getProfile(req, res) {
     try {
-      const user = await User.findById(req.user.id).select("-password -_id -__v -googleId").lean();
+      const user = await User.findById(req.user.id).select("-password -__v -googleId").lean();
       if (!user) return res.status(404).json({ message: "Not found" });
 
       const totalCommits = await Commit.countDocuments({ user_id: req.user.id });

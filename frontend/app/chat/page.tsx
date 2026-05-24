@@ -52,8 +52,13 @@ export default function ChatPage() {
   useEffect(() => {
     const initChat = async () => {
       try {
-        const u = await getAuthProfile();
-        if (u) setCurrentUser(u);
+        const payload = await getAuthProfile();
+        // The API returns { user: { _id, name, ... } }
+        if (payload && payload.user) {
+          setCurrentUser(payload.user);
+        } else if (payload && payload._id) {
+          setCurrentUser(payload);
+        }
         
         await loadFriends();
       } catch (error) {
