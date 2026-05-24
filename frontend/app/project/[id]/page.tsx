@@ -81,7 +81,7 @@ export default function ProjectPage() {
     if (!searchQuery.trim()) return;
     setSearching(true);
     try {
-      const res = await fetch(`${BACKEND}/profile/search?q=${searchQuery}`, {
+      const res = await fetch(`${BACKEND}/user/search?q=${searchQuery}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error(await res.text());
