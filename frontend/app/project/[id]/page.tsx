@@ -242,10 +242,22 @@ export default function ProjectPage() {
                       <CardContent className="p-4">
                         <p className="font-semibold mb-2">{f.file_name}</p>
                         <div
-                          className="max-w-full overflow-auto text-sm p-2 border border-border rounded whitespace-pre-wrap font-mono"
+                          className="max-w-full overflow-auto text-sm py-2 border border-border rounded whitespace-pre-wrap font-mono"
                           style={{ backgroundColor: "#1e1e1e" }}
-                          dangerouslySetInnerHTML={{ __html: f.diff }}
-                        />
+                        >
+                          {f.diff.split('\n').map((line: string, i: number) => {
+                            if (line.startsWith('+') && !line.startsWith('+++')) {
+                              return <div key={i} className="bg-green-500/20 text-green-400 px-2">{line}</div>;
+                            }
+                            if (line.startsWith('-') && !line.startsWith('---')) {
+                              return <div key={i} className="bg-red-500/20 text-red-400 px-2">{line}</div>;
+                            }
+                            if (line.startsWith('@@')) {
+                              return <div key={i} className="text-blue-400 px-2">{line}</div>;
+                            }
+                            return <div key={i} className="text-gray-300 px-2">{line}</div>;
+                          })}
+                        </div>
                       </CardContent>
                     </Card>
                   ))}
