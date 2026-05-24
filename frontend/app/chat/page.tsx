@@ -40,7 +40,13 @@ export default function ChatPage() {
   const [inputValue, setInputValue] = useState("");
   const [socket, setSocket] = useState<Socket | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const activeChatRef = useRef<User | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Keep activeChatRef updated so socket closures have latest state
+  useEffect(() => {
+    activeChatRef.current = activeChat;
+  }, [activeChat]);
 
   // Initial Data Load
   useEffect(() => {
@@ -80,15 +86,17 @@ export default function ChatPage() {
     });
 
     newSocket.on("receive_message", (msg: Message) => {
-      setActiveChat((currentActive) => {
-        if (
-          currentActive && 
-          (msg.sender._id === currentActive._id || msg.receiver._id === currentActive._id)
-        ) {
-          setMessages((prev) => [...prev, msg]);
-        }
-        return currentActive;
-      });
+      const currentActive = activeChatRef.current;
+      if (
+        currentActive && 
+        (msg.sender._id === currentActive._id || msg.receiver._id === currentActive._id)
+      ) {
+        setMessages((prev) => {
+          // Prevent duplicate messages in UI by checking IDs
+          if (prev.some(m => m._id === msg._id)) return prev;
+          return [...prev, msg];
+        });
+      }
     });
 
     setSocket(newSocket);
