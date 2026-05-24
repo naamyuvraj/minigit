@@ -23,7 +23,7 @@ passport.use(
           user = await User.create({
             name: profile.displayName,
             email,
-            username: profile.displayName.split(" ")[0].toLowerCase(),
+            username: profile.displayName.split(" ")[0].toLowerCase() + Math.floor(Math.random() * 10000),
             avatarUrl: profile?.photos?.[0]?.value || "",
             provider: "google",
           });
